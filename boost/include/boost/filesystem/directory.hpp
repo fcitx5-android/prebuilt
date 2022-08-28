@@ -20,6 +20,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/file_status.hpp>
 
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <utility> // std::move
@@ -141,8 +142,8 @@ public:
     bool operator>=(directory_entry const& rhs) const BOOST_NOEXCEPT { return m_path >= rhs.m_path; }
 
 private:
-    BOOST_FILESYSTEM_DECL file_status get_status(system::error_code* ec = 0) const;
-    BOOST_FILESYSTEM_DECL file_status get_symlink_status(system::error_code* ec = 0) const;
+    BOOST_FILESYSTEM_DECL file_status get_status(system::error_code* ec = NULL) const;
+    BOOST_FILESYSTEM_DECL file_status get_symlink_status(system::error_code* ec = NULL) const;
 
 private:
     boost::filesystem::path m_path;
@@ -247,7 +248,8 @@ BOOST_SCOPED_ENUM_UT_DECLARE_BEGIN(directory_options, unsigned int)
     skip_dangling_symlinks = 1u << 2,   // non-standard extension for recursive_directory_iterator: don't follow dangling directory symlinks,
     pop_on_error = 1u << 3,             // non-standard extension for recursive_directory_iterator: instead of producing an end iterator on errors,
                                         // repeatedly invoke pop() until it succeeds or the iterator becomes equal to end iterator
-    _detail_no_push = 1u << 4           // internal use only
+    _detail_no_follow = 1u << 4,        // internal use only
+    _detail_no_push = 1u << 5           // internal use only
 }
 BOOST_SCOPED_ENUM_DECLARE_END(directory_options)
 
@@ -257,43 +259,36 @@ class directory_iterator;
 
 namespace detail {
 
-BOOST_FILESYSTEM_DECL
-system::error_code dir_itr_close( // never throws()
-    void*& handle
-#if defined(BOOST_POSIX_API)
-    , void*& buffer
-#endif
-    ) BOOST_NOEXCEPT;
-
 struct dir_itr_imp :
     public boost::intrusive_ref_counter< dir_itr_imp >
 {
+#ifdef BOOST_WINDOWS_API
+    bool close_handle;
+    unsigned char extra_data_format;
+    std::size_t current_offset;
+#endif
     directory_entry dir_entry;
     void* handle;
 
-#if defined(BOOST_POSIX_API)
-    void* buffer; // see dir_itr_increment implementation
-#endif
-
     dir_itr_imp() BOOST_NOEXCEPT :
-        handle(0)
-#if defined(BOOST_POSIX_API)
-        , buffer(0)
+#ifdef BOOST_WINDOWS_API
+        close_handle(false),
+        extra_data_format(0u),
+        current_offset(0u),
 #endif
+        handle(NULL)
     {
     }
+    BOOST_FILESYSTEM_DECL ~dir_itr_imp() BOOST_NOEXCEPT;
 
-    ~dir_itr_imp() BOOST_NOEXCEPT
-    {
-        dir_itr_close(handle
-#if defined(BOOST_POSIX_API)
-            , buffer
-#endif
-        );
-    }
+    BOOST_FILESYSTEM_DECL static void* operator new(std::size_t class_size, std::size_t extra_size) BOOST_NOEXCEPT;
+    BOOST_FILESYSTEM_DECL static void operator delete(void* p, std::size_t extra_size) BOOST_NOEXCEPT;
+    BOOST_FILESYSTEM_DECL static void operator delete(void* p) BOOST_NOEXCEPT;
 };
 
-BOOST_FILESYSTEM_DECL void directory_iterator_construct(directory_iterator& it, path const& p, unsigned int opts, system::error_code* ec);
+struct directory_iterator_params;
+
+BOOST_FILESYSTEM_DECL void directory_iterator_construct(directory_iterator& it, path const& p, unsigned int opts, directory_iterator_params* params, system::error_code* ec);
 BOOST_FILESYSTEM_DECL void directory_iterator_increment(directory_iterator& it, system::error_code* ec);
 
 } // namespace detail
@@ -313,7 +308,7 @@ class directory_iterator :
 {
     friend class boost::iterator_core_access;
 
-    friend BOOST_FILESYSTEM_DECL void detail::directory_iterator_construct(directory_iterator& it, path const& p, unsigned int opts, system::error_code* ec);
+    friend BOOST_FILESYSTEM_DECL void detail::directory_iterator_construct(directory_iterator& it, path const& p, unsigned int opts, detail::directory_iterator_params* params, system::error_code* ec);
     friend BOOST_FILESYSTEM_DECL void detail::directory_iterator_increment(directory_iterator& it, system::error_code* ec);
 
 public:
@@ -323,17 +318,17 @@ public:
     // separate translation unit dll's, so forward to detail functions
     explicit directory_iterator(path const& p, BOOST_SCOPED_ENUM_NATIVE(directory_options) opts = directory_options::none)
     {
-        detail::directory_iterator_construct(*this, p, static_cast< unsigned int >(opts), 0);
+        detail::directory_iterator_construct(*this, p, static_cast< unsigned int >(opts), NULL, NULL);
     }
 
     directory_iterator(path const& p, system::error_code& ec) BOOST_NOEXCEPT
     {
-        detail::directory_iterator_construct(*this, p, static_cast< unsigned int >(directory_options::none), &ec);
+        detail::directory_iterator_construct(*this, p, static_cast< unsigned int >(directory_options::none), NULL, &ec);
     }
 
     directory_iterator(path const& p, BOOST_SCOPED_ENUM_NATIVE(directory_options) opts, system::error_code& ec) BOOST_NOEXCEPT
     {
-        detail::directory_iterator_construct(*this, p, static_cast< unsigned int >(opts), &ec);
+        detail::directory_iterator_construct(*this, p, static_cast< unsigned int >(opts), NULL, &ec);
     }
 
     BOOST_DEFAULTED_FUNCTION(directory_iterator(directory_iterator const& that), : m_imp(that.m_imp) {})
@@ -369,7 +364,7 @@ private:
         return m_imp->dir_entry;
     }
 
-    void increment() { detail::directory_iterator_increment(*this, 0); }
+    void increment() { detail::directory_iterator_increment(*this, NULL); }
 
     bool equal(directory_iterator const& rhs) const BOOST_NOEXCEPT
     {
@@ -525,7 +520,7 @@ public:
 
     explicit recursive_directory_iterator(path const& dir_path)
     {
-        detail::recursive_directory_iterator_construct(*this, dir_path, static_cast< unsigned int >(directory_options::none), 0);
+        detail::recursive_directory_iterator_construct(*this, dir_path, static_cast< unsigned int >(directory_options::none), NULL);
     }
 
     recursive_directory_iterator(path const& dir_path, system::error_code& ec)
@@ -535,7 +530,7 @@ public:
 
     recursive_directory_iterator(path const& dir_path, BOOST_SCOPED_ENUM_NATIVE(directory_options) opts)
     {
-        detail::recursive_directory_iterator_construct(*this, dir_path, static_cast< unsigned int >(opts), 0);
+        detail::recursive_directory_iterator_construct(*this, dir_path, static_cast< unsigned int >(opts), NULL);
     }
 
     recursive_directory_iterator(path const& dir_path, BOOST_SCOPED_ENUM_NATIVE(directory_options) opts, system::error_code& ec)
@@ -547,7 +542,7 @@ public:
     // Deprecated constructors
     recursive_directory_iterator(path const& dir_path, BOOST_SCOPED_ENUM_NATIVE(symlink_option) opts)
     {
-        detail::recursive_directory_iterator_construct(*this, dir_path, static_cast< unsigned int >(opts), 0);
+        detail::recursive_directory_iterator_construct(*this, dir_path, static_cast< unsigned int >(opts), NULL);
     }
 
     recursive_directory_iterator(path const& dir_path, BOOST_SCOPED_ENUM_NATIVE(symlink_option) opts, system::error_code& ec) BOOST_NOEXCEPT
@@ -601,7 +596,7 @@ public:
 
     void pop()
     {
-        detail::recursive_directory_iterator_pop(*this, 0);
+        detail::recursive_directory_iterator_pop(*this, NULL);
     }
 
     void pop(system::error_code& ec) BOOST_NOEXCEPT
@@ -648,7 +643,7 @@ private:
         return *m_imp->m_stack.back();
     }
 
-    void increment() { detail::recursive_directory_iterator_increment(*this, 0); }
+    void increment() { detail::recursive_directory_iterator_increment(*this, NULL); }
 
     bool equal(recursive_directory_iterator const& rhs) const BOOST_NOEXCEPT
     {

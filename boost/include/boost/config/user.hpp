@@ -16,7 +16,7 @@
 // Android defines
 // There is problem with std::atomic on android (and some other platforms).
 // See this link for more info:
-// https://code.google.com/p/android/issues/detail?id=42735#makechanges
+// https://issuetracker.google.com/issues/36964000
 #define BOOST_ASIO_DISABLE_STD_ATOMIC 1
 
 

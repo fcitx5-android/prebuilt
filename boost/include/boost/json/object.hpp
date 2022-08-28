@@ -1483,39 +1483,45 @@ public:
     }
 
 private:
-    template<class InputIt>
-    void
-    construct(
-        InputIt first,
-        InputIt last,
-        std::size_t min_capacity,
-        std::input_iterator_tag);
-
-    template<class InputIt>
-    void
-    construct(
-        InputIt first,
-        InputIt last,
-        std::size_t min_capacity,
-        std::forward_iterator_tag);
-
-    template<class InputIt>
-    void
-    insert(
-        InputIt first,
-        InputIt last,
-        std::input_iterator_tag);
-
-    template<class InputIt>
-    void
-    insert(
-        InputIt first,
-        InputIt last,
-        std::forward_iterator_tag);
-
-    BOOST_JSON_DECL
+#ifndef BOOST_JSON_DOCS
+    // VFALCO friending a detail function makes it public
+    template<class CharRange>
+    friend
     std::pair<key_value_pair*, std::size_t>
-    find_impl(string_view key) const noexcept;
+    detail::find_in_object(
+        object const& obj,
+        CharRange key) noexcept;
+#endif
+
+    template<class InputIt>
+    void
+    construct(
+        InputIt first,
+        InputIt last,
+        std::size_t min_capacity,
+        std::input_iterator_tag);
+
+    template<class InputIt>
+    void
+    construct(
+        InputIt first,
+        InputIt last,
+        std::size_t min_capacity,
+        std::forward_iterator_tag);
+
+    template<class InputIt>
+    void
+    insert(
+        InputIt first,
+        InputIt last,
+        std::input_iterator_tag);
+
+    template<class InputIt>
+    void
+    insert(
+        InputIt first,
+        InputIt last,
+        std::forward_iterator_tag);
 
     BOOST_JSON_DECL
     std::pair<iterator, bool>

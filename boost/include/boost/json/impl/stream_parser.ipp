@@ -70,6 +70,19 @@ std::size_t
 stream_parser::
 write_some(
     char const* data,
+    std::size_t size,
+    std::error_code& ec)
+{
+    error_code jec;
+    std::size_t const result = write_some(data, size, jec);
+    ec = jec;
+    return result;
+}
+
+std::size_t
+stream_parser::
+write_some(
+    char const* data,
     std::size_t size)
 {
     error_code ec;
@@ -92,10 +105,23 @@ write(
         data, size, ec);
     if(! ec && n < size)
     {
-        ec = error::extra_data;
+        BOOST_JSON_FAIL(ec, error::extra_data);
         p_.fail(ec);
     }
     return n;
+}
+
+std::size_t
+stream_parser::
+write(
+    char const* data,
+    std::size_t size,
+    std::error_code& ec)
+{
+    error_code jec;
+    std::size_t const result = write(data, size, jec);
+    ec = jec;
+    return result;
 }
 
 std::size_t
@@ -129,6 +155,15 @@ finish()
     if(ec)
         detail::throw_system_error(ec,
             BOOST_JSON_SOURCE_POS);
+}
+
+void
+stream_parser::
+finish(std::error_code& ec)
+{
+    error_code jec;
+    finish(jec);
+    ec = jec;
 }
 
 value
