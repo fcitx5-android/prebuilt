@@ -118,7 +118,7 @@ if(CONFIG_FOR_INSTALL_TREE)
               NAMES event2/event.h
               PATHS "${_INSTALL_PREFIX}/include"
               NO_DEFAULT_PATH)
-    if(true)
+    if(_event_h)
         set(LIBEVENT_INCLUDE_DIRS "${_event_h}")
         message_if_needed(STATUS "Found libevent include directory: ${_event_h}")
     else()
@@ -132,7 +132,7 @@ if(CONFIG_FOR_INSTALL_TREE)
                     NAMES "event_${_comp}"
                     PATHS "${_INSTALL_PREFIX}/lib"
                     NO_DEFAULT_PATH)
-        if(true)
+        if(_event_lib)
             list(APPEND LIBEVENT_LIBRARIES "libevent::${_comp}")
             set_case_insensitive_found(${_comp})
             message_if_needed(STATUS "Found libevent component: ${_event_lib}")
@@ -146,7 +146,7 @@ if(CONFIG_FOR_INSTALL_TREE)
     endforeach()
 else()
     ## Config for build tree ----------------------------------------
-    set(LIBEVENT_INCLUDE_DIRS "/home/agent/jenkins/workspace/android/prebuilder/libevent/include;/home/agent/jenkins/workspace/android/prebuilder/libevent/build-x86_64/include")
+    set(LIBEVENT_INCLUDE_DIRS "include")
     foreach(_comp ${_EVENT_COMPONENTS})
         list(APPEND LIBEVENT_LIBRARIES "libevent::${_comp}")
         set_case_insensitive_found(${_comp})
