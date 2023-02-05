@@ -4,6 +4,10 @@ CMAKE=""
 
 build_libevent() {
     echo ">>> Building libevent for $1"
+    # make cmake generate relative _IMPORT_PREFIX
+    sed -i '1456s|${CMAKE_INSTALL_PREFIX}/||' CMakeLists.txt
+    sed -i '1475{\|"${PROJECT_SOURCE_DIR}/include"|d}' CMakeLists.txt
+    sed -i '1475s|${PROJECT_BINARY_DIR}/||' CMakeLists.txt
     "$CMAKE" -B build \
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT"/build/cmake/android.toolchain.cmake \
         -DANDROID_ABI="$1" \
@@ -22,16 +26,9 @@ build_libevent() {
         -DEVENT__DISABLE_SAMPLES=ON \
         .
     "$CMAKE" --build build
-    "$CMAKE" --build build --target install
-    # I don't know why cmake can't find those dirs ... so just sed it
-    # https://github.com/libevent/libevent/blob/release-2.1.12-stable/cmake/LibeventConfig.cmake.in#L117
-    sed -i '121s/_event_h/true/' ./out/libevent/$1/lib/cmake/libevent/LibeventConfig.cmake
-    sed -i '135s/_event_lib/true/' ./out/libevent/$1/lib/cmake/libevent/LibeventConfig.cmake
-    # I know it was generated, but I don't know how to tell cmake to change it's behavior ... so sed it
-    # https://github.com/Kitware/CMake/blob/v3.18.1/Source/cmExportInstallFileGenerator.cxx#L191
-    sed -i '45{/^set(_IMPORT_PREFIX/d}' ./out/libevent/$1/lib/cmake/libevent/LibeventTargets-static.cmake
-    sed -i '45iget_filename_component(LIBEVENT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)' ./out/libevent/$1/lib/cmake/libevent/LibeventTargets-static.cmake
-    sed -i '46iget_filename_component(_IMPORT_PREFIX "${LIBEVENT_CMAKE_DIR}/../../.." ABSOLUTE)' ./out/libevent/$1/lib/cmake/libevent/LibeventTargets-static.cmake
+    # avoid installing pkgconf files and python scripts
+    "$CMAKE" --install build --component lib
+    "$CMAKE" --install build --component dev
     rm -rf ./build
 }
 
