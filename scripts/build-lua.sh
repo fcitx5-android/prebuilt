@@ -1,21 +1,29 @@
 #!/usr/bin/env bash
 
 CMAKE=""
+NINJA=""
 
 build_lua() {
-    echo ">>> Building lua for $1"
-    "$CMAKE" -B build \
+    local BUILD_ABI="$1"
+    local BUILD_DIR="./build_$BUILD_ABI"
+    local INSTALL_DIR="./out/opencc/$BUILD_ABI"
+    if [ -e "$BUILD_DIR" ]; then
+        echo ">>> Cleaning previous build intermediates"
+        rm -r "$BUILD_DIR"
+    fi
+    echo ">>> Building lua for $BUILD_ABI"
+    "$CMAKE" -B "$BUILD_DIR" -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT"/build/cmake/android.toolchain.cmake \
-        -DANDROID_ABI="$1" \
+        -DCMAKE_MAKE_PROGRAM="$NINJA" \
+        -DANDROID_ABI="$BUILD_ABI" \
         -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
         -DANDROID_STL=c++_shared \
-        -DCMAKE_INSTALL_PREFIX=out/lua/"$1" \
+        -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
         -DLUA_BUILD_BINARY=OFF \
         -DLUA_BUILD_COMPILER=OFF \
         .
-    "$CMAKE" --build build
-    "$CMAKE" --build build --target install
-    rm -rf ./build
+    "$CMAKE" --build "$BUILD_DIR"
+    "$CMAKE" --install "$BUILD_DIR"
 }
 
 if [ -z "${ANDROID_SDK_ROOT}" ]; then
@@ -43,7 +51,9 @@ if [ -z "${ANDROID_ABI}" ]; then
     exit 1
 fi
 
-CMAKE="$ANDROID_SDK_ROOT/cmake/$ANDROID_SDK_CMAKE_VERSION/bin/cmake"
+ANDROID_SDK_CMAKE_BIN="$ANDROID_SDK_ROOT/cmake/$ANDROID_SDK_CMAKE_VERSION/bin"
+CMAKE="$ANDROID_SDK_CMAKE_BIN/cmake"
+NINJA="$ANDROID_SDK_CMAKE_BIN/ninja"
 
 if [ ! -f "$CMAKE" ]; then
     echo "Cannot find cmake: '$CMAKE'"

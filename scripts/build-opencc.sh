@@ -3,7 +3,7 @@
 CMAKE=""
 NINJA=""
 
-build_libevent() {
+build_opencc() {
     local BUILD_ABI="$1"
     local BUILD_DIR="./build_$BUILD_ABI"
     local INSTALL_DIR="./out/opencc/$BUILD_ABI"
@@ -11,33 +11,34 @@ build_libevent() {
         echo ">>> Cleaning previous build intermediates"
         rm -r "$BUILD_DIR"
     fi
-    echo ">>> Building libevent for $BUILD_ABI"
-    # make cmake generate relative _IMPORT_PREFIX
-    sed -i '1456s|${CMAKE_INSTALL_PREFIX}/||' CMakeLists.txt
-    sed -i '1475{\|"${PROJECT_SOURCE_DIR}/include"|d}' CMakeLists.txt
-    sed -i '1475s|${PROJECT_BINARY_DIR}/||' CMakeLists.txt
+    echo ">>> Building opencc for $BUILD_ABI"
     "$CMAKE" -B "$BUILD_DIR" -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
         -DCMAKE_MAKE_PROGRAM="$NINJA" \
-        -DANDROID_ABI="$INSTALL_DIR" \
+        -DANDROID_ABI="$BUILD_ABI" \
         -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
         -DANDROID_STL=c++_shared \
         -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
         -DCMAKE_CXX_FLAGS="-std=c++17" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DEVENT__LIBRARY_TYPE=STATIC \
-        -DEVENT__DISABLE_DEBUG_MODE=ON \
-        -DEVENT__DISABLE_THREAD_SUPPORT=ON \
-        -DEVENT__DISABLE_OPENSSL=ON \
-        -DEVENT__DISABLE_BENCHMARK=ON \
-        -DEVENT__DISABLE_TESTS=ON \
-        -DEVENT__DISABLE_REGRESS=ON \
-        -DEVENT__DISABLE_SAMPLES=ON \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_DOCUMENTATION=OFF \
+        -DBUILD_PYTHON=OFF \
+        -DENABLE_GTEST=OFF \
+        -DENABLE_BENCHMARK=OFF \
+        -DENABLE_DARTS=OFF \
+        -DUSE_SYSTEM_MARISA=OFF \
+        -DUSE_SYSTEM_PYBIND11=OFF \
+        -DUSE_SYSTEM_RAPIDJSON=OFF \
+        -DUSE_SYSTEM_TCLAP=OFF \
+        -DSHARE_INSTALL_PREFIX=share \
+        -DINCLUDE_INSTALL_DIR=include \
+        -DSYSCONF_INSTALL_DIR=etc \
+        -DLIB_INSTALL_DIR=lib \
         .
     "$CMAKE" --build "$BUILD_DIR"
-    # avoid installing pkgconf files and python scripts
-    "$CMAKE" --install "$BUILD_DIR" --component lib
-    "$CMAKE" --install "$BUILD_DIR" --component dev
+    "$CMAKE" --install "$BUILD_DIR"
+    rm -r "$INSTALL_DIR/"{bin,lib/pkgconfig}
 }
 
 if [ -z "${ANDROID_SDK_ROOT}" ]; then
@@ -77,5 +78,5 @@ fi
 IFS=',' read -ra ARCH <<< "${ANDROID_ABI}"
 
 for a in "${ARCH[@]}"; do
-  build_libevent "$a"
+  build_opencc "$a"
 done
