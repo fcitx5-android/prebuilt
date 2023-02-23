@@ -117,7 +117,7 @@ if(CONFIG_FOR_INSTALL_TREE)
     find_path(_event_h
               NAMES event2/event.h
               PATHS "${_INSTALL_PREFIX}/include"
-              NO_DEFAULT_PATH)
+              NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
     if(_event_h)
         set(LIBEVENT_INCLUDE_DIRS "${_event_h}")
         message_if_needed(STATUS "Found libevent include directory: ${_event_h}")
@@ -131,7 +131,7 @@ if(CONFIG_FOR_INSTALL_TREE)
         find_library(_event_lib
                     NAMES "event_${_comp}"
                     PATHS "${_INSTALL_PREFIX}/lib"
-                    NO_DEFAULT_PATH)
+                    NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
         if(_event_lib)
             list(APPEND LIBEVENT_LIBRARIES "libevent::${_comp}")
             set_case_insensitive_found(${_comp})
