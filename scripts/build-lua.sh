@@ -6,7 +6,7 @@ NINJA=""
 build_lua() {
     local BUILD_ABI="$1"
     local BUILD_DIR="./build_$BUILD_ABI"
-    local INSTALL_DIR="./out/opencc/$BUILD_ABI"
+    local INSTALL_DIR="./out/lua/$BUILD_ABI"
     if [ -e "$BUILD_DIR" ]; then
         echo ">>> Cleaning previous build intermediates"
         rm -r "$BUILD_DIR"

@@ -6,7 +6,7 @@ NINJA=""
 build_libevent() {
     local BUILD_ABI="$1"
     local BUILD_DIR="./build_$BUILD_ABI"
-    local INSTALL_DIR="./out/opencc/$BUILD_ABI"
+    local INSTALL_DIR="./out/libevent/$BUILD_ABI"
     if [ -e "$BUILD_DIR" ]; then
         echo ">>> Cleaning previous build intermediates"
         rm -r "$BUILD_DIR"
@@ -16,10 +16,13 @@ build_libevent() {
     sed -i '1456s|${CMAKE_INSTALL_PREFIX}/||' CMakeLists.txt
     sed -i '1475{\|"${PROJECT_SOURCE_DIR}/include"|d}' CMakeLists.txt
     sed -i '1475s|${PROJECT_BINARY_DIR}/||' CMakeLists.txt
+    # fix LibeventConfig.cmake find_{path,library} calls in ndk toolchain
+    sed -i '120s|NO_DEFAULT_PATH)|NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)|' cmake/LibeventConfig.cmake.in
+    sed -i '134s|NO_DEFAULT_PATH)|NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)|' cmake/LibeventConfig.cmake.in
     "$CMAKE" -B "$BUILD_DIR" -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
         -DCMAKE_MAKE_PROGRAM="$NINJA" \
-        -DANDROID_ABI="$INSTALL_DIR" \
+        -DANDROID_ABI="$BUILD_ABI" \
         -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
         -DANDROID_STL=c++_shared \
         -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
