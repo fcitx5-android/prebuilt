@@ -12,6 +12,9 @@ build_opencc() {
         rm -r "$BUILD_DIR"
     fi
     echo ">>> Building opencc for $BUILD_ABI"
+    # remove absolute path by __FILE__ macro
+    sed -i "18{/^set_target_properties/i target_compile_options(marisa PRIVATE \"-ffile-prefix-map=\$\\{CMAKE_CURRENT_SOURCE_DIR\\}=.\")
+}" deps/marisa-0.2.6/CMakeLists.txt
     "$CMAKE" -B "$BUILD_DIR" -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
         -DCMAKE_MAKE_PROGRAM="$NINJA" \
