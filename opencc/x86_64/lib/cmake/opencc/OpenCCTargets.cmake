@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget OpenCC::OpenCC OpenCC::marisa)
+foreach(_expectedTarget OpenCC::OpenCC)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -55,11 +55,8 @@ add_library(OpenCC::OpenCC STATIC IMPORTED)
 
 set_target_properties(OpenCC::OpenCC PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/opencc"
-  INTERFACE_LINK_LIBRARIES "OpenCC::marisa"
+  INTERFACE_LINK_LIBRARIES "marisa"
 )
-
-# Create imported target OpenCC::marisa
-add_library(OpenCC::marisa STATIC IMPORTED)
 
 if(CMAKE_VERSION VERSION_LESS 2.8.12)
   message(FATAL_ERROR "This file relies on consumers using CMake 2.8.12 or greater.")

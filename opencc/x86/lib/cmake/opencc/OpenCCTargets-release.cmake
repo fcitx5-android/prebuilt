@@ -15,15 +15,5 @@ set_target_properties(OpenCC::OpenCC PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS OpenCC::OpenCC )
 list(APPEND _IMPORT_CHECK_FILES_FOR_OpenCC::OpenCC "${_IMPORT_PREFIX}/lib/libopencc.a" )
 
-# Import target "OpenCC::marisa" for configuration "Release"
-set_property(TARGET OpenCC::marisa APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(OpenCC::marisa PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/lib/libmarisa.a"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS OpenCC::marisa )
-list(APPEND _IMPORT_CHECK_FILES_FOR_OpenCC::marisa "${_IMPORT_PREFIX}/lib/libmarisa.a" )
-
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)
