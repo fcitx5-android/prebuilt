@@ -47,6 +47,7 @@
 #include <boost/type_traits/make_void.hpp>
 #include <boost/type_traits/remove_const.hpp>
 #include <boost/unordered/detail/fca.hpp>
+#include <boost/unordered/detail/type_traits.hpp>
 #include <boost/unordered/detail/fwd.hpp>
 #include <boost/utility/addressof.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -57,92 +58,6 @@
 
 #if !defined(BOOST_NO_CXX11_HDR_TYPE_TRAITS)
 #include <type_traits>
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
-// Configuration
-//
-// Unless documented elsewhere these configuration macros should be considered
-// an implementation detail, I'll try not to break them, but you never know.
-
-// Use Sun C++ workarounds
-// I'm not sure which versions of the compiler require these workarounds, so
-// I'm just using them of everything older than the current test compilers
-// (as of May 2017).
-
-#if !defined(BOOST_UNORDERED_SUN_WORKAROUNDS1)
-#if BOOST_COMP_SUNPRO && BOOST_COMP_SUNPRO < BOOST_VERSION_NUMBER(5, 20, 0)
-#define BOOST_UNORDERED_SUN_WORKAROUNDS1 1
-#else
-#define BOOST_UNORDERED_SUN_WORKAROUNDS1 0
-#endif
-#endif
-
-// BOOST_UNORDERED_EMPLACE_LIMIT = The maximum number of parameters in
-// emplace (not including things like hints). Don't set it to a lower value, as
-// that might break something.
-
-#if !defined BOOST_UNORDERED_EMPLACE_LIMIT
-#define BOOST_UNORDERED_EMPLACE_LIMIT 10
-#endif
-
-// BOOST_UNORDERED_TUPLE_ARGS
-//
-// Maximum number of std::tuple members to support, or 0 if std::tuple
-// isn't avaiable. More are supported when full C++11 is used.
-
-// Already defined, so do nothing
-#if defined(BOOST_UNORDERED_TUPLE_ARGS)
-
-// Assume if we have C++11 tuple it's properly variadic,
-// and just use a max number of 10 arguments.
-#elif !defined(BOOST_NO_CXX11_HDR_TUPLE)
-#define BOOST_UNORDERED_TUPLE_ARGS 10
-
-// Visual C++ has a decent enough tuple for piecewise construction,
-// so use that if available, using _VARIADIC_MAX for the maximum
-// number of parameters. Note that this comes after the check
-// for a full C++11 tuple.
-#elif defined(BOOST_MSVC)
-#if !BOOST_UNORDERED_HAVE_PIECEWISE_CONSTRUCT
-#define BOOST_UNORDERED_TUPLE_ARGS 0
-#elif defined(_VARIADIC_MAX)
-#define BOOST_UNORDERED_TUPLE_ARGS _VARIADIC_MAX
-#else
-#define BOOST_UNORDERED_TUPLE_ARGS 5
-#endif
-
-// Assume that we don't have std::tuple
-#else
-#define BOOST_UNORDERED_TUPLE_ARGS 0
-#endif
-
-#if BOOST_UNORDERED_TUPLE_ARGS
-#include <tuple>
-#endif
-
-// BOOST_UNORDERED_CXX11_CONSTRUCTION
-//
-// Use C++11 construction, requires variadic arguments, good construct support
-// in allocator_traits and piecewise construction of std::pair
-// Otherwise allocators aren't used for construction/destruction
-
-#if BOOST_UNORDERED_HAVE_PIECEWISE_CONSTRUCT &&                                \
-  !defined(BOOST_NO_CXX11_VARIADIC_TEMPLATES) && BOOST_UNORDERED_TUPLE_ARGS
-#if BOOST_COMP_SUNPRO && BOOST_LIB_STD_GNU
-// Sun C++ std::pair piecewise construction doesn't seem to be exception safe.
-// (At least for Sun C++ 12.5 using libstdc++).
-#define BOOST_UNORDERED_CXX11_CONSTRUCTION 0
-#elif BOOST_COMP_GNUC && BOOST_COMP_GNUC < BOOST_VERSION_NUMBER(4, 7, 0)
-// Piecewise construction in GCC 4.6 doesn't work for uncopyable types.
-#define BOOST_UNORDERED_CXX11_CONSTRUCTION 0
-#elif !defined(BOOST_NO_CXX11_ALLOCATOR)
-#define BOOST_UNORDERED_CXX11_CONSTRUCTION 1
-#endif
-#endif
-
-#if !defined(BOOST_UNORDERED_CXX11_CONSTRUCTION)
-#define BOOST_UNORDERED_CXX11_CONSTRUCTION 0
 #endif
 
 #if BOOST_UNORDERED_CXX11_CONSTRUCTION
@@ -181,18 +96,6 @@
 #endif
 #endif
 
-// BOOST_UNORDERED_TEMPLATE_DEDUCTION_GUIDES
-
-#if !defined(BOOST_UNORDERED_TEMPLATE_DEDUCTION_GUIDES)
-#if BOOST_COMP_CLANG && __cplusplus >= 201703
-#define BOOST_UNORDERED_TEMPLATE_DEDUCTION_GUIDES 1
-#endif
-#endif
-
-#if !defined(BOOST_UNORDERED_TEMPLATE_DEDUCTION_GUIDES)
-#define BOOST_UNORDERED_TEMPLATE_DEDUCTION_GUIDES 0
-#endif
-
 namespace boost {
   namespace unordered {
     namespace detail {
@@ -200,7 +103,7 @@ namespace boost {
       template <typename Types> struct table;
 
       static const float minimum_max_load_factor = 1e-3f;
-      static const std::size_t default_bucket_count = 11;
+      static const std::size_t default_bucket_count = 0;
 
       struct move_tag
       {
@@ -617,39 +520,6 @@ namespace boost {
         false_type;
 
 #endif
-
-////////////////////////////////////////////////////////////////////////////
-// Type checkers used for the transparent member functions added by C++20 and up
-
-      template <class, class = void> struct is_transparent : public false_type
-      {
-      };
-
-      template <class T>
-      struct is_transparent<T,
-        typename boost::make_void<typename T::is_transparent>::type>
-          : public true_type
-      {
-      };
-
-      template <class, class A, class B> struct are_transparent
-      {
-        static bool const value =
-          is_transparent<A>::value && is_transparent<B>::value;
-      };
-
-      template <class Key, class UnorderedMap> struct transparent_non_iterable
-      {
-        typedef typename UnorderedMap::hasher hash;
-        typedef typename UnorderedMap::key_equal key_equal;
-        typedef typename UnorderedMap::iterator iterator;
-        typedef typename UnorderedMap::const_iterator const_iterator;
-
-        static bool const value =
-          are_transparent<Key, hash, key_equal>::value &&
-          !boost::is_convertible<Key, iterator>::value &&
-          !boost::is_convertible<Key, const_iterator>::value;
-      };
 
 ////////////////////////////////////////////////////////////////////////////
 // Explicitly call a destructor
@@ -1521,7 +1391,22 @@ namespace boost {
         }
 
 #endif
-      }
+
+        template <typename T, typename Alloc, typename Key>
+        inline typename boost::allocator_pointer<Alloc>::type
+        construct_node_from_key(T*, Alloc& alloc, BOOST_FWD_REF(Key) k)
+        {
+          return construct_node(alloc, boost::forward<Key>(k));
+        }
+
+        template <typename T, typename V, typename Alloc, typename Key>
+        inline typename boost::allocator_pointer<Alloc>::type
+        construct_node_from_key(
+          std::pair<T const, V>*, Alloc& alloc, BOOST_FWD_REF(Key) k)
+        {
+          return construct_node_pair(alloc, boost::forward<Key>(k));
+        }
+      } // namespace func
     }
   }
 }
@@ -1739,7 +1624,7 @@ namespace boost {
           typedef std::ptrdiff_t difference_type;
           typedef std::forward_iterator_tag iterator_category;
 
-          iterator() : p(), itb(){};
+          iterator() : p(), itb(){}
 
           reference operator*() const BOOST_NOEXCEPT { return dereference(); }
           pointer operator->() const BOOST_NOEXCEPT
@@ -1830,7 +1715,7 @@ namespace boost {
           typedef std::ptrdiff_t difference_type;
           typedef std::forward_iterator_tag iterator_category;
 
-          c_iterator() : p(), itb(){};
+          c_iterator() : p(), itb(){}
           c_iterator(iterator<Node, Bucket> it) : p(it.p), itb(it.itb) {}
 
           reference operator*() const BOOST_NOEXCEPT { return dereference(); }
@@ -2054,12 +1939,14 @@ namespace boost {
 
         std::size_t bucket_size(std::size_t index) const
         {
-          bucket_iterator itb = buckets_.at(index);
-          node_pointer n = itb->next;
           std::size_t count = 0;
-          while (n) {
-            ++count;
-            n = n->next;
+          if (size_ > 0) {
+            bucket_iterator itb = buckets_.at(index);
+            node_pointer n = itb->next;
+            while (n) {
+              ++count;
+              n = n->next;
+            }
           }
           return count;
         }
@@ -2069,13 +1956,18 @@ namespace boost {
 
         void recalculate_max_load()
         {
-          using namespace std;
-
           // From 6.3.1/13:
           // Only resize when size >= mlf_ * count
-          max_load_ = boost::unordered::detail::double_to_size(
-            floor(static_cast<double>(mlf_) *
-                 static_cast<double>(buckets_.bucket_count())));
+          std::size_t const bc = buckets_.bucket_count();
+
+          // it's important we do the `bc == 0` check here because the `mlf_`
+          // can be specified to be infinity. The operation `n * INF` is `INF`
+          // for all `n > 0` but NaN for `n == 0`.
+          //
+          max_load_ =
+            bc == 0 ? 0
+                    : boost::unordered::detail::double_to_size(
+                        static_cast<double>(mlf_) * static_cast<double>(bc));
         }
 
         void max_load_factor(float z)
@@ -2087,6 +1979,12 @@ namespace boost {
 
         ////////////////////////////////////////////////////////////////////////
         // Constructors
+
+        table()
+            : functions(hasher(), key_equal()), size_(0), mlf_(1.0f),
+              max_load_(0)
+        {
+        }
 
         table(std::size_t num_buckets, hasher const& hf, key_equal const& eq,
           node_allocator_type const& a)
@@ -2359,7 +2257,6 @@ namespace boost {
         template <typename UniqueType>
         void move_assign(table& x, UniqueType is_unique, false_type)
         {
-          reserve(x.size_);
           if (node_alloc() == x.node_alloc()) {
             move_assign_equal_alloc(x);
           } else {
@@ -2388,7 +2285,9 @@ namespace boost {
           {
             mlf_ = x.mlf_;
             recalculate_max_load();
-            this->reserve_for_insert(x.size_);
+            if (x.size_ > 0) {
+              this->reserve_for_insert(x.size_);
+            }
             this->clear_impl();
           }
           BOOST_CATCH(...)
@@ -2420,11 +2319,14 @@ namespace boost {
         node_pointer find_node_impl(
           Key const& x, bucket_iterator itb) const
         {
-          key_equal const& pred = this->key_eq();
-          node_pointer p = itb->next;
-          for (; p; p = p->next) {
-            if (pred(x, extractor::extract(p->value()))) {
-              break;
+          node_pointer p = node_pointer();
+          if (itb != buckets_.end()) {
+            key_equal const& pred = this->key_eq();
+            p = itb->next;
+            for (; p; p = p->next) {
+              if (pred(x, extractor::extract(p->value()))) {
+                break;
+              }
             }
           }
           return p;
@@ -2453,11 +2355,13 @@ namespace boost {
         inline iterator transparent_find(
           Key const& k, Hash const& h, Pred const& pred) const
         {
-          std::size_t const key_hash = h(k);
-          bucket_iterator itb = buckets_.at(buckets_.position(key_hash));
-          for (node_pointer p = itb->next; p; p = p->next) {
-            if (BOOST_LIKELY(pred(k, extractor::extract(p->value())))) {
-              return iterator(p, itb);
+          if (size_ > 0) {
+            std::size_t const key_hash = h(k);
+            bucket_iterator itb = buckets_.at(buckets_.position(key_hash));
+            for (node_pointer p = itb->next; p; p = p->next) {
+              if (BOOST_LIKELY(pred(k, extractor::extract(p->value())))) {
+                return iterator(p, itb);
+              }
             }
           }
 
@@ -2467,11 +2371,13 @@ namespace boost {
         template <class Key>
         node_pointer* find_prev(Key const& key, bucket_iterator itb)
         {
-          key_equal pred = this->key_eq();
-          for (node_pointer* pp = boost::addressof(itb->next); *pp;
-               pp = boost::addressof((*pp)->next)) {
-            if (pred(key, extractor::extract((*pp)->value()))) {
-              return pp;
+          if (size_ > 0) {
+            key_equal pred = this->key_eq();
+            for (node_pointer* pp = boost::addressof(itb->next); *pp;
+                pp = boost::addressof((*pp)->next)) {
+              if (pred(key, extractor::extract((*pp)->value()))) {
+                return pp;
+              }
             }
           }
           typedef node_pointer* node_pointer_pointer;
@@ -2501,6 +2407,17 @@ namespace boost {
           std::size_t const h = this->hash(key);
           bucket_iterator itnewb = new_buckets.at(new_buckets.position(h));
           new_buckets.insert_node(itnewb, p);
+        }
+
+        static std::size_t min_buckets(std::size_t num_elements, float mlf)
+        {
+          std::size_t num_buckets = static_cast<std::size_t>(
+            std::ceil(static_cast<float>(num_elements) / mlf));
+
+          if (num_buckets == 0 && num_elements > 0) { // mlf == inf
+            num_buckets = 1;
+          }
+          return num_buckets;
         }
 
         void rehash(std::size_t);
@@ -2652,8 +2569,10 @@ namespace boost {
           } else {
             node_allocator_type alloc = node_alloc();
 
-            node_tmp tmp(
-              detail::func::construct_node_pair(alloc, boost::forward<Key>(k)),
+            value_type* dispatch = BOOST_NULLPTR;
+
+            node_tmp tmp(detail::func::construct_node_from_key(
+                           dispatch, alloc, boost::forward<Key>(k)),
               alloc);
 
             if (size_ + 1 > max_load_) {
@@ -2672,7 +2591,7 @@ namespace boost {
         template <typename Key>
         iterator try_emplace_hint_unique(c_iterator hint, BOOST_FWD_REF(Key) k)
         {
-          if (hint.p && this->key_eq()(hint->first, k)) {
+          if (hint.p && this->key_eq()(extractor::extract(*hint), k)) {
             return iterator(hint.p, hint.itb);
           } else {
             return try_emplace_unique(k).first;
@@ -3411,22 +3330,18 @@ namespace boost {
       template <typename Types>
       inline void table<Types>::rehash(std::size_t num_buckets)
       {
-        std::size_t bc = (std::max)(num_buckets,
-          static_cast<std::size_t>(1.0f + static_cast<float>(size_) / mlf_));
+        num_buckets = buckets_.bucket_count_for(
+          (std::max)(min_buckets(size_, mlf_), num_buckets));
 
-        if (bc <= buckets_.bucket_count()) {
-          return;
+        if (num_buckets != this->bucket_count()) {
+          this->rehash_impl(num_buckets);
         }
-
-        this->rehash_impl(bc);
       }
 
       template <class Types>
       inline void table<Types>::reserve(std::size_t num_elements)
       {
-        std::size_t const num_buckets = static_cast<std::size_t>(
-          std::ceil(static_cast<float>(num_elements) / mlf_));
-
+        std::size_t num_buckets = min_buckets(num_elements, mlf_);
         this->rehash(num_buckets);
       }
 
@@ -3478,7 +3393,7 @@ namespace boost {
             }
           }
           buckets_.unlink_empty_buckets();
-          BOOST_RETHROW;
+          BOOST_RETHROW
         }
         BOOST_CATCH_END
 

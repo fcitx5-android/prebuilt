@@ -13,6 +13,7 @@
 #include <boost/process/v2/detail/config.hpp>
 #include <boost/process/v2/cstring_ref.hpp>
 #include <boost/process/v2/detail/utf8.hpp>
+#include <boost/type_traits.hpp>
 #include <functional>
 #include <memory>
 #include <numeric>
@@ -488,7 +489,7 @@ struct key
     using string_type      = std::basic_string<char_type, traits_type>;
     using string_view_type = basic_string_view<char_type, traits_type>;
 
-    key() noexcept = default;
+    key() {}
     key( const key& p ) = default;
     key( key&& p ) noexcept = default;
     key( const string_type& source ) : value_(source) {}
@@ -501,8 +502,8 @@ struct key
 
     template< class Source >
     key( const Source& source,
-        decltype(source.data()) = nullptr,
-        decltype(source.size()) = 0u)
+        decltype(std::declval<Source>().data()) = nullptr,
+        decltype(std::declval<Source>().size()) = 0u)
         : value_(
              BOOST_PROCESS_V2_NAMESPACE::detail::conv_string<char_type, traits_type>(
                 source.data(), source.size()))
@@ -524,7 +525,11 @@ struct key
     ~key() = default;
 
     key& operator=( const key& p ) = default;
-    key& operator=( key&& p ) noexcept = default;
+    key& operator=( key&& p )
+    {
+      value_ = std::move(p.value_);
+      return *this;
+    }
     key& operator=( string_type&& source )
     {
         value_ = std::move(source);
@@ -708,7 +713,7 @@ struct value
     using string_type      = std::basic_string<char_type, traits_type>;
     using string_view_type = basic_cstring_ref<char_type, traits_type>;
 
-    value() noexcept = default;
+    value() {}
     value( const value& p ) = default;
 
     value( const string_type& source ) : value_(source) {}
@@ -720,8 +725,8 @@ struct value
 
     template< class Source >
     value( const Source& source,
-           decltype(source.data()) = nullptr,
-    decltype(source.size()) = 0u)
+           decltype(std::declval<Source>().data()) = nullptr,
+    decltype(std::declval<Source>().size()) = 0u)
     : value_(BOOST_PROCESS_V2_NAMESPACE::detail::conv_string<char_type, traits_type>(
         source.data(), source.size()))
     {
@@ -742,7 +747,11 @@ struct value
     ~value() = default;
 
     value& operator=( const value& p ) = default;
-    value& operator=( value&& p ) noexcept = default;
+    value& operator=( value&& p )
+    {
+      value_ = std::move(p.value_);
+      return *this;
+    }
     value& operator=( string_type&& source )
     {
         value_ = std::move(source);
@@ -935,7 +944,7 @@ struct key_value_pair
     using string_type      = std::basic_string<char_type>;
     using string_view_type = basic_cstring_ref<char_type>;
 
-    key_value_pair() noexcept = default;
+    key_value_pair() {}
     key_value_pair( const key_value_pair& p ) = default;
     key_value_pair( key_value_pair&& p ) noexcept = default;
     key_value_pair(key_view key, value_view value) : value_(key.basic_string<char_type, traits_type>() + equality_sign + 
@@ -966,8 +975,8 @@ struct key_value_pair
 
     template< class Source >
     key_value_pair( const Source& source,
-           decltype(source.data()) = nullptr,
-           decltype(source.size()) = 0u)
+           decltype(std::declval<Source>().data()) = nullptr,
+           decltype(std::declval<Source>().size()) = 0u)
             : value_(BOOST_PROCESS_V2_NAMESPACE::detail::conv_string<char_type, traits_type>(
                 source.data(), source.size()))
     {
@@ -979,7 +988,8 @@ struct key_value_pair
          const std::pair<Key, Value> & kv/*,
          typename std::enable_if<std::is_constructible<struct key,   Key >::value && 
                                  std::is_constructible<struct value, Value>::value
-                >::type = 0*/) : value_(((struct key)(kv.first)).string() + equality_sign + ((struct value)(kv.second)).string())
+                >::type = 0*/) : value_(((struct key)(kv.first)).basic_string<char_type, traits_type>() + equality_sign 
+                                      + ((struct value)(kv.second)).basic_string<char_type, traits_type>())
     {}
 
     key_value_pair(const typename conditional<is_same<value_type, char>::value, wchar_t, char>::type  * raw)
@@ -998,7 +1008,11 @@ struct key_value_pair
     ~key_value_pair() = default;
 
     key_value_pair& operator=( const key_value_pair& p ) = default;
-    key_value_pair& operator=( key_value_pair&& p ) noexcept = default;
+    key_value_pair& operator=( key_value_pair&& p )
+    {
+      value_ = std::move(p.value_);
+      return *this;
+    }
     key_value_pair& operator=( string_type&& source )
     {
         value_ = std::move(source);
@@ -1045,6 +1059,7 @@ struct key_value_pair
 
     operator string_type() const {return native();}
     operator string_view_type() const {return native_view();}
+    operator typename string_view_type::string_view_type() const {return native_view();}
     operator key_value_pair_view() const {return native_view();}
 
     int compare( const key_value_pair& p ) const noexcept 
@@ -1432,8 +1447,9 @@ auto find_key(Environment & env, key_view ky)
 template<typename Environment = current_view>
 inline filesystem::path home(Environment && env = current())
 {
-#if defined(ASIO_WINDOWS)
-  return detail::find_key(env, L"HOMEDRIVE") + detail::find_key(env, L"HOMEPATH").native_string();
+#if defined(BOOST_PROCESS_V2_WINDOWS)
+  return detail::find_key(env, L"HOMEDRIVE").native_string() 
+       + detail::find_key(env, L"HOMEPATH").native_string();
 #else
   return detail::find_key(env, "HOME").native_string();
 #endif
@@ -1468,7 +1484,7 @@ inline BOOST_PROCESS_V2_NAMESPACE::filesystem::path find_executable(
         // first check if it has the extension already
         BOOST_PROCESS_V2_NAMESPACE::filesystem::path full_nm(name);
         BOOST_PROCESS_V2_NAMESPACE::filesystem::path pp(pp_view.begin(), pp_view.end());
-        auto p = pp / nm;
+        auto p = pp / full_nm;
         error_code ec;
 
         if (detail::is_executable(p, ec) && !ec)
@@ -1695,66 +1711,51 @@ struct process_environment
 
 
   template<typename Args>
-  void build_env(Args && args, string_view rs)
+  static
+  std::vector<wchar_t> build_env(Args && args,
+                                      typename std::enable_if<
+                                              std::is_convertible<
+                                                      decltype(*std::begin(std::declval<Args>())),
+                                                      wcstring_ref>::value>::type * = nullptr)
   {
-    std::size_t length = 0u;
-    for (string_view v : args)
-      length += detail::size_as_wide(v.data(), v.size(), ec) + 1u;
+    std::vector<wchar_t> res;
+    std::size_t sz = 1;
+    for (wcstring_ref cs : std::forward<Args>(args))
+        sz =+ cs.size() + 1;
+    res.reserve(sz);
+    
+    for (wcstring_ref cs : std::forward<Args>(args))
+        res.insert(res.end(), cs.begin(), std::next(cs.end()));
+        
 
-    if (ec)
-        return;
-    length ++ ;
-
-    unicode_env.resize(length);
-
-    auto itr = &unicode_env.front();
-    for (string_view v : args)
-    {
-        itr += detail::convert_to_wide(
-                        v.data(), v.size(), 
-                        itr, &unicode_env.back() - itr, 
-                        ec);
-      if (ec)
-        break;
-      *(itr++) = '\0';
-    }
-    unicode_env.back() = '\0';
-  }
-  template<typename Args>
-  void build_env(Args && args, wstring_view rs)
-  {
-    std::size_t length = 0u;
-    for (const auto & v : std::forward<Args>(args))
-      length += v.size() + 1u;
- 
-    length ++ ;
-
-    unicode_env.resize(length);
-
-    auto itr = unicode_env.begin();
-    for (wstring_view v : args )
-    {
-      itr = std::copy(v.begin(), v.end(), itr);
-      *(itr++) = L'\0';
-    }
-    unicode_env.back() = L'\0';
+    res.push_back(L'\0');
+    return res;
   }
 
+  template<typename Args>
+  std::vector<wchar_t> build_env(Args && args,
+                                      typename std::enable_if<
+                                              !std::is_convertible<
+                                                      decltype(*std::begin(std::declval<Args>())),
+                                                      wcstring_ref>::value>::type * = nullptr)
+  {
+    for (auto && arg: std::forward<Args>(args))
+      env_buffer.emplace_back(arg);
+    return build_env(env_buffer);
+  }
 
-  process_environment(std::initializer_list<string_view> sv)  { build_env(sv,  ""); }
-  process_environment(std::initializer_list<wstring_view> sv) { build_env(sv, L""); }
+  process_environment(std::initializer_list<string_view> sv)  : unicode_env{build_env(sv)} {}
+  process_environment(std::initializer_list<wstring_view> sv) : unicode_env{build_env(sv)} {}
 
   template<typename Args>
-  process_environment(Args && args)
+  process_environment(Args && args) : unicode_env{build_env(std::forward<Args>(args))}
   {
-    if (std::begin(args) != std::end(args))
-      build_env(std::forward<Args>(args), *std::begin(args));
   }
 
   error_code error() {return ec;}
   error_code ec;
+  std::vector<environment::key_value_pair> env_buffer;
   std::vector<wchar_t> unicode_env;
-
 
   error_code on_setup(windows::default_launcher & launcher,
                       const filesystem::path &, const std::wstring &);

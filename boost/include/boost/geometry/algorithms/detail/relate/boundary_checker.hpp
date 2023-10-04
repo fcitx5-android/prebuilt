@@ -1,7 +1,8 @@
 // Boost.Geometry (aka GGL, Generic Geometry Library)
 
-// Copyright (c) 2014-2022 Oracle and/or its affiliates.
+// Copyright (c) 2014-2023, Oracle and/or its affiliates.
 
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -20,6 +21,10 @@
 #include <boost/geometry/geometries/helper_geometry.hpp>
 
 #include <boost/geometry/policies/compare.hpp>
+
+#include <boost/geometry/strategies/relate/cartesian.hpp>
+#include <boost/geometry/strategies/relate/geographic.hpp>
+#include <boost/geometry/strategies/relate/spherical.hpp>
 
 #include <boost/geometry/util/has_nan_coordinate.hpp>
 #include <boost/geometry/util/range.hpp>
@@ -96,13 +101,13 @@ inline void copy_boundary_points(Point const& front_pt, Point const& back_pt,
         {
             mutable_point_type pt;
             geometry::convert(front_pt, pt);
-            boundary_points.push_back(front_pt);
+            boundary_points.push_back(pt);
         }
         if (! geometry::has_nan_coordinate(back_pt))
         {
             mutable_point_type pt;
             geometry::convert(back_pt, pt);
-            boundary_points.push_back(back_pt);
+            boundary_points.push_back(pt);
         }
     }
 }
@@ -157,7 +162,7 @@ public:
     template <typename Point>
     bool is_endpoint_boundary(Point const& pt) const
     {
-        using less_type = geometry::less<mutable_point_type, -1, typename Strategy::cs_tag>;
+        using less_type = geometry::less<mutable_point_type, -1, Strategy>;
 
         auto const multi_count = boost::size(m_geometry);
 
@@ -178,9 +183,11 @@ public:
             m_is_filled = true;
         }
 
+        mutable_point_type mpt;
+        geometry::convert(pt, mpt);
         auto const equal_range = std::equal_range(m_boundary_points.begin(),
                                                   m_boundary_points.end(),
-                                                  pt,
+                                                  mpt,
                                                   less_type());
 
         std::size_t const equal_points_count = boost::size(equal_range);

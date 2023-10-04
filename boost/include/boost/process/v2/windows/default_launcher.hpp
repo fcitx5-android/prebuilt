@@ -14,6 +14,7 @@
 #include <boost/process/v2/cstring_ref.hpp>
 #include <boost/process/v2/detail/config.hpp>
 #include <boost/process/v2/detail/last_error.hpp>
+#include <boost/process/v2/detail/throw_error.hpp>
 #include <boost/process/v2/detail/utf8.hpp>
 #include <boost/process/v2/error.hpp>
 
@@ -244,7 +245,7 @@ struct default_launcher
       auto proc =  (*this)(context, ec, executable, std::forward<Args>(args), std::forward<Inits>(inits)...);
 
       if (ec)
-          asio::detail::throw_error(ec, "default_launcher");
+          v2::detail::throw_error(ec, "default_launcher");
 
       return proc;
   }
@@ -275,7 +276,7 @@ struct default_launcher
       auto proc =  (*this)(std::move(exec), ec, executable, std::forward<Args>(args), std::forward<Inits>(inits)...);
 
       if (ec)
-          asio::detail::throw_error(ec, "default_launcher");
+          detail::throw_error(ec, "default_launcher");
 
       return proc;
   }
@@ -311,10 +312,9 @@ struct default_launcher
         &startup_info.StartupInfo,
         &process_information);
 
-    auto ec__ = detail::get_last_error();
     if (ok == 0)
     {
-      ec = detail::get_last_error();
+      BOOST_PROCESS_V2_ASSIGN_LAST_ERROR(ec)
       detail::on_error(*this, executable, command_line, ec, inits...);
 
       if (process_information.hProcess != INVALID_HANDLE_VALUE)
@@ -396,6 +396,11 @@ struct default_launcher
       return pt.native();
 
     return build_command_line_impl(pt, args, *std::begin(args));
+  }
+
+  static std::wstring build_command_line(const filesystem::path & pt, const wchar_t * args)
+  {
+    return args;
   }
 
 };
