@@ -22,7 +22,11 @@
  *  \author libchewing Core Team
  */
 
-#include "global.h"
+#ifdef WITH_RUST
+#   include "chewing_rs.h"
+#else
+#   include "global.h"
+#endif
 
 #define KEYSTROKE_IGNORE 1
 #define KEYSTROKE_COMMIT 2
@@ -498,6 +502,30 @@ CHEWING_API int chewing_get_phraseChoiceRearward(const ChewingContext *ctx);
 /*@}*/
 
 
+/*! \name Behavior of automatic learning after committing
+ */
+
+/*@{*/
+/**
+ * @brief Set the behavior of automatic learning
+ *
+ * @param ctx
+ * @param mode AUTOLEARN_ENABLED or AUTOLEARN_DISABLED
+ */
+CHEWING_API void chewing_set_autoLearn(ChewingContext *ctx, int mode);
+
+
+/**
+ * @brief Get the behavior of automatic learning
+ *
+ * @param ctx
+ * @return AUTOLEARN_ENABLED or AUTOLEARN_DISABLED
+ */
+CHEWING_API int chewing_get_autoLearn(const ChewingContext *ctx);
+
+/*@}*/
+
+
 /*! \name Phonetic sequence in Chewing internal state machine
  */
 
@@ -551,6 +579,8 @@ CHEWING_API ChewingContext *chewing_new2(const char *syspath,
                                          const char *userpath,
                                          void (*logger) (void *data, int level, const char *fmt, ...),
                                          void *loggerdata);
+
+CHEWING_API int chewing_phone_to_bopomofo(unsigned short phone, char *buf, unsigned short len);
 
 /* *INDENT-OFF* */
 #endif                          /* _CHEWING_IO_H */
