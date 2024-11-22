@@ -1,7 +1,7 @@
 #ifndef BOOST_LEAF_DETAIL_OPTIONAL_HPP_INCLUDED
 #define BOOST_LEAF_DETAIL_OPTIONAL_HPP_INCLUDED
 
-// Copyright 2018-2022 Emil Dotchevski and Reverge Studios, Inc.
+// Copyright 2018-2023 Emil Dotchevski and Reverge Studios, Inc.
 
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -66,7 +66,7 @@ namespace leaf_detail
             reset();
             if( int key = x.key() )
             {
-                put(key, x.value_);
+                load(key, x.value_);
                 key_ = key;
             }
             return *this;
@@ -77,7 +77,7 @@ namespace leaf_detail
             reset();
             if( int key = x.key() )
             {
-                put(key, std::move(x.value_));
+                load(key, std::move(x.value_));
                 x.reset();
             }
             return *this;
@@ -107,7 +107,16 @@ namespace leaf_detail
             }
         }
 
-        BOOST_LEAF_CONSTEXPR T & put( int key, T const & v )
+        BOOST_LEAF_CONSTEXPR T & load( int key )
+        {
+            BOOST_LEAF_ASSERT(key);
+            reset();
+            (void) new(&value_) T;
+            key_=key;
+            return value_;
+        }
+
+        BOOST_LEAF_CONSTEXPR T & load( int key, T const & v )
         {
             BOOST_LEAF_ASSERT(key);
             reset();
@@ -116,13 +125,23 @@ namespace leaf_detail
             return value_;
         }
 
-        BOOST_LEAF_CONSTEXPR T & put( int key, T && v ) noexcept
+        BOOST_LEAF_CONSTEXPR T & load( int key, T && v ) noexcept
         {
             BOOST_LEAF_ASSERT(key);
             reset();
             (void) new(&value_) T(std::move(v));
             key_=key;
             return value_;
+        }
+
+        BOOST_LEAF_CONSTEXPR T const * has_value() const noexcept
+        {
+            return key_ ? &value_ : nullptr;
+        }
+
+        BOOST_LEAF_CONSTEXPR T * has_value() noexcept
+        {
+            return key_ ? &value_ : nullptr;
         }
 
         BOOST_LEAF_CONSTEXPR T const * has_value(int key) const noexcept

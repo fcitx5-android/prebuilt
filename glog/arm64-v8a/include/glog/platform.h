@@ -39,9 +39,7 @@
 #elif defined(__CYGWIN__) || defined(__CYGWIN32__)
 #  define GLOG_OS_CYGWIN
 #elif defined(linux) || defined(__linux) || defined(__linux__)
-#  ifndef GLOG_OS_LINUX
-#    define GLOG_OS_LINUX
-#  endif
+#  define GLOG_OS_LINUX
 #  if defined(__ANDROID__)
 #    define GLOG_OS_ANDROID
 #  endif
@@ -55,6 +53,7 @@
 #  define GLOG_OS_OPENBSD
 #elif defined(__EMSCRIPTEN__)
 #  define GLOG_OS_EMSCRIPTEN
+#else
 // TODO(hamaji): Add other platforms.
 #error Platform not supported by glog. Please consider to contribute platform information by submitting a pull request on Github.
 #endif
