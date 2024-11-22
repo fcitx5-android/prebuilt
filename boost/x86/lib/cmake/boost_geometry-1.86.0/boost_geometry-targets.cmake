@@ -95,7 +95,7 @@ unset(_IMPORT_CHECK_TARGETS)
 # Make sure the targets which have been exported in some other
 # export set exist.
 unset(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets)
-foreach(_target "Boost::algorithm" "Boost::any" "Boost::array" "Boost::assert" "Boost::concept_check" "Boost::config" "Boost::core" "Boost::function_types" "Boost::iterator" "Boost::lexical_cast" "Boost::move" "Boost::mpl" "Boost::multiprecision" "Boost::numeric_conversion" "Boost::qvm" "Boost::range" "Boost::rational" "Boost::static_assert" "Boost::throw_exception" "Boost::tokenizer" "Boost::tuple" "Boost::type_traits" "Boost::utility" "Boost::variant" )
+foreach(_target "Boost::algorithm" "Boost::any" "Boost::array" "Boost::assert" "Boost::concept_check" "Boost::config" "Boost::core" "Boost::function_types" "Boost::iterator" "Boost::lexical_cast" "Boost::move" "Boost::mpl" "Boost::multiprecision" "Boost::numeric_conversion" "Boost::qvm" "Boost::range" "Boost::rational" "Boost::static_assert" "Boost::throw_exception" "Boost::tokenizer" "Boost::tuple" "Boost::type_traits" "Boost::utility" "Boost::variant" "Boost::container" )
   if(NOT TARGET "${_target}" )
     set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets "${${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets} ${_target}")
   endif()

@@ -94,7 +94,7 @@ unset(_IMPORT_CHECK_TARGETS)
 # Make sure the targets which have been exported in some other
 # export set exist.
 unset(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets)
-foreach(_target "Boost::config" "Boost::core" "Boost::integer" "Boost::throw_exception" "Boost::type_traits" )
+foreach(_target "Boost::config" "Boost::container" "Boost::core" "Boost::integer" "Boost::throw_exception" "Boost::type_traits" )
   if(NOT TARGET "${_target}" )
     set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets "${${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets} ${_target}")
   endif()
