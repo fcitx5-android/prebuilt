@@ -12,8 +12,8 @@ set_target_properties(Lua::lua_static PROPERTIES
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/lib/liblua_static.a"
   )
 
-list(APPEND _IMPORT_CHECK_TARGETS Lua::lua_static )
-list(APPEND _IMPORT_CHECK_FILES_FOR_Lua::lua_static "${_IMPORT_PREFIX}/lib/liblua_static.a" )
+list(APPEND _cmake_import_check_targets Lua::lua_static )
+list(APPEND _cmake_import_check_files_for_Lua::lua_static "${_IMPORT_PREFIX}/lib/liblua_static.a" )
 
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)

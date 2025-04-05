@@ -12,8 +12,8 @@ set_target_properties(glog::glog PROPERTIES
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/lib/libglog.a"
   )
 
-list(APPEND _IMPORT_CHECK_TARGETS glog::glog )
-list(APPEND _IMPORT_CHECK_FILES_FOR_glog::glog "${_IMPORT_PREFIX}/lib/libglog.a" )
+list(APPEND _cmake_import_check_targets glog::glog )
+list(APPEND _cmake_import_check_files_for_glog::glog "${_IMPORT_PREFIX}/lib/libglog.a" )
 
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)

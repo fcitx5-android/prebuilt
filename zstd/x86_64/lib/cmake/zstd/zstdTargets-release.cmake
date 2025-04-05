@@ -12,8 +12,8 @@ set_target_properties(zstd::libzstd_static PROPERTIES
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/lib/libzstd.a"
   )
 
-list(APPEND _IMPORT_CHECK_TARGETS zstd::libzstd_static )
-list(APPEND _IMPORT_CHECK_FILES_FOR_zstd::libzstd_static "${_IMPORT_PREFIX}/lib/libzstd.a" )
+list(APPEND _cmake_import_check_targets zstd::libzstd_static )
+list(APPEND _cmake_import_check_files_for_zstd::libzstd_static "${_IMPORT_PREFIX}/lib/libzstd.a" )
 
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)

@@ -33,6 +33,7 @@
 #  define GLOG_DEPRECATED_NO_EXPORT GLOG_NO_EXPORT GLOG_DEPRECATED
 #endif
 
+/* NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if) */
 #if 0 /* DEFINE_NO_DEPRECATED */
 #  ifndef GLOG_NO_DEPRECATED
 #    define GLOG_NO_DEPRECATED
